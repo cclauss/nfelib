@@ -9,10 +9,21 @@ import retEnviNFe as supermod
 
 def parsexml_(infile, parser=None, keep_signature=False, **kwargs):
     "accepts both NFe and nfeProc documents"
-    if parser is None:
-        # Use the lxml ElementTree compatible parser so that, e.g.,
-        #   we ignore comments.
-        parser = etree_.ETCompatXMLParser()
+    # Use the lxml ElementTree compatible parser so that, e.g.,
+    # we ignore comments.
+    doc = etree_.parse(infile, parser=etree_.ETCompatXMLParser(), **kwargs)
+
+    if parser:
+        xmlschema_doc = etree_.parse(parser)
+        parser = etree_.XMLSchema(xmlschema_doc)
+        parser.assertValid(doc)
+
+        # TODO Criar uma exceção para retornar as mensagens do erro de validação.
+        # if not parser.validate(doc):
+        #     validation_messages = []
+        #     for e in parser.error_log:
+        #         validation_messages.append(e.message)
+
     doc = etree_.parse(infile, parser=parser, **kwargs)
     if doc.getroot().tag == '{http://www.portalfiscal.inf.br/nfe}nfeProc':
         root = doc.getroot()[0]
@@ -40,7 +51,12 @@ ExternalEncoding = ''
 
 
 def parse(inFilename, silence=False):
-    parser = None
+    try:
+        parser = os.path.join(
+            os.path.dirname(__file__), '..', '..', 'schemas', 'nfe',
+            'v4_00', 'nfe_v4.00.xsd')
+    except:
+        parser = None
     doc = parsexml_(inFilename, parser)
     rootNode = doc.getroot()
     rootTag, rootClass = supermod.get_root_tag(rootNode)
